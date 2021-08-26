@@ -48,23 +48,15 @@
         $.getJSON("swagger.json", function(json) {
             vid_swagger = json;
             delete(vid_swagger["basePath"]);
-            let newServer = $("#device_ip").val();
-            console.log("NewServer before: " + newServer);
-            if((typeof(newServer) === 'undefined') || (newServer == '')) {
-              newServer="0.0.0.0";
-            }
-            console.log("NewServer after: " + newServer);
-            vid_swagger["servers"] = [{"url": "http://" + newServer + ":2020"}];
             updateSwagger();
         });
     }
 
     const VideonCustomizations = function(system) {
-      console.log("Look for system..");
-      console.log(system.getSystem().getComponents());
       return {
         components: {
-          Servers: system.getComponent("CustomServers", true),
+          ServersContainer: () => null,
+          TryItOutButton: () => null,
         }
       }
     }
@@ -74,12 +66,14 @@
       const ui = SwaggerUIBundle({
         spec: vid_swagger,
         dom_id: '#swagger-ui',
+        display: {
+          tryItOutEnabled: false,
+        },
         presets: [
           SwaggerUIBundle.presets.apis,
           SwaggerUIStandalonePreset
         ],
         plugins: [
-          SwaggerUIBundle.plugins.CustomServers,
           VideonCustomizations,
           SwaggerUIBundle.plugins.DownloadUrl
         ],
