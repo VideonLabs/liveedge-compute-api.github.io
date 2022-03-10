@@ -1,13 +1,13 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "description": "The LiveEdge(R) Compute platform provides complete control over the configuration and streaming capabilites of the Videon EdgeCaster. LiveEdge(R) Compute serves this API directly from the device so it can be consumed by the applications you deploy to it.",
-    "title": "LiveEdge(R) Compute REST API",
+    "description": "This document presents the REST API for Videon streaming devices. Multimedia encoder settings and media destinations(outputs) can be configured through the REST API.\n\nFor specific possible values, please refer to the particular streaming device you are using. All Videon streaming devices share a common REST API, but the specific features supported will vary for each device model.\n\nBefore starting, check out our REST API Quickstart Guide.  It makes getting started easy!",
+    "title": "Videon Streaming REST API",
     "version": ""
   },
   "servers": [
     {
-      "url": "%7Bdevice_ip%7D:2020"
+      "url": "http://ip.address:2020/"
     }
   ],
   "paths": {
@@ -31,6 +31,7 @@
                       "data_encoders": [
                         {
                           "active": false,
+                          "codec": "klv_sync",
                           "data_encoder_id": 0,
                           "seconds_in_status": 0,
                           "status": "DISABLED"
@@ -81,6 +82,12 @@
                           "active": {
                             "type": "boolean"
                           },
+                          "codec": {
+                            "enum": [
+                              "klv_sync"
+                            ],
+                            "type": "string"
+                          },
                           "data_encoder_id": {
                             "type": "number"
                           },
@@ -93,6 +100,7 @@
                         },
                         "required": [
                           "data_encoder_id",
+                          "codec",
                           "active"
                         ],
                         "type": "object"
@@ -773,11 +781,13 @@
                   "response": {
                     "value": {
                       "available_codecs": [
-                        "klv_sync"
+                        "klv_sync",
+                        "scte35"
                       ],
                       "data_encoders": [
                         {
                           "active": false,
+                          "codec": "klv_sync",
                           "data_encoder_id": 0,
                           "seconds_in_status": 0,
                           "status": "DISABLED"
@@ -790,7 +800,14 @@
                   "properties": {
                     "available_codecs": {
                       "items": {
-                        "type": "string"
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "string"
+                          }
+                        ]
                       },
                       "type": "array"
                     },
@@ -799,6 +816,12 @@
                         "properties": {
                           "active": {
                             "type": "boolean"
+                          },
+                          "codec": {
+                            "enum": [
+                              "klv_sync"
+                            ],
+                            "type": "string"
                           },
                           "data_encoder_id": {
                             "type": "number"
@@ -812,6 +835,7 @@
                         },
                         "required": [
                           "data_encoder_id",
+                          "codec",
                           "active"
                         ],
                         "type": "object"
@@ -872,6 +896,30 @@
         ],
         "description": "Create a new data encoder with the specified settings.",
         "operationId": "Create New Data Encoder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "example": {
+                  "codec": "klv_sync"
+                },
+                "properties": {
+                  "codec": {
+                    "enum": [
+                      "klv_sync",
+                      "scte35"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "codec"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
         "summary": "Create New Data Encoder"
       }
     },
@@ -925,6 +973,9 @@
                       "active": false,
                       "codec": {
                         "klv_sync": {},
+                        "scte35": {
+                          "splice_duration": 30000
+                        },
                         "value": "klv_sync"
                       },
                       "data_encoder_id": 0,
@@ -945,9 +996,21 @@
                           "properties": {},
                           "type": "object"
                         },
+                        "scte35": {
+                          "properties": {
+                            "splice_duration": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "splice_duration"
+                          ],
+                          "type": "object"
+                        },
                         "value": {
                           "enum": [
-                            "klv_sync"
+                            "klv_sync",
+                            "scte35"
                           ],
                           "type": "string"
                         }
@@ -1022,6 +1085,9 @@
                 "example": {
                   "codec": {
                     "klv_sync": {},
+                    "scte35": {
+                      "splice_duration": 30000
+                    },
                     "value": "klv_sync"
                   },
                   "name": "DataEncoder1"
@@ -1033,9 +1099,21 @@
                         "properties": {},
                         "type": "object"
                       },
+                      "scte35": {
+                        "properties": {
+                          "splice_duration": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "splice_duration"
+                        ],
+                        "type": "object"
+                      },
                       "value": {
                         "enum": [
-                          "klv_sync"
+                          "klv_sync",
+                          "scte35"
                         ],
                         "type": "string"
                       }
@@ -1059,6 +1137,34 @@
           }
         },
         "summary": "Update Data Encoder Configuration"
+      }
+    },
+    "/v2/encoders/data_encoders/{id}/action/insert_splice": {
+      "post": {
+        "parameters": [
+          {
+            "description": "",
+            "example": "0",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {}
+          }
+        },
+        "tags": [
+          "Data Encoders"
+        ],
+        "description": "Insert splice markers to transport stream outputs starting now. The duration of the splice will be what is configured in\nthe SCTE-35 encoder. There will be at least a 4 second delay in splice start.",
+        "operationId": "SCTE-35 - Insert Splice",
+        "summary": "SCTE-35 - Insert Splice"
       }
     },
     "/v2/encoders/vid_encoders": {
@@ -1271,7 +1377,9 @@
             "headers": {}
           }
         },
-        "tags": [],
+        "tags": [
+          "Sync Groups"
+        ],
         "description": "Get the list of sync groups.",
         "operationId": "Get Sync Group List",
         "summary": "Get Sync Group List"
@@ -1305,7 +1413,9 @@
             "headers": {}
           }
         },
-        "tags": [],
+        "tags": [
+          "Sync Groups"
+        ],
         "description": "Create sync group with the specified settings.",
         "operationId": "Create Sync Group",
         "summary": "Create Sync Group"
@@ -1331,7 +1441,9 @@
             "headers": {}
           }
         },
-        "tags": [],
+        "tags": [
+          "Sync Groups"
+        ],
         "description": "Delete the specified sync group.",
         "operationId": "Delete Sync Group",
         "summary": "Delete Sync Group"
@@ -1525,7 +1637,9 @@
             "headers": {}
           }
         },
-        "tags": [],
+        "tags": [
+          "Sync Groups"
+        ],
         "description": "Get settings for the specified sync group.",
         "operationId": "Get Sync Group Configuration",
         "summary": "Get Sync Group Configuration"
@@ -1549,7 +1663,9 @@
             "headers": {}
           }
         },
-        "tags": [],
+        "tags": [
+          "Sync Groups"
+        ],
         "description": "Update settings for the specified sync group.",
         "operationId": "Update Sync Group Configuration",
         "requestBody": {
@@ -2718,6 +2834,13 @@
                             "value": "TS"
                           },
                           "filename_base": "VID",
+                          "filename_timezone": {
+                            "possible_values": [
+                              "UTC",
+                              "LOCALTIME"
+                            ],
+                            "value": "UTC"
+                          },
                           "ftp_upload": {
                             "bytes_uploaded": 0,
                             "delete_file_after_upload": false,
@@ -2833,7 +2956,8 @@
                               "wowza_cloud",
                               "youtube",
                               "facebook",
-                              "aws_ivs"
+                              "aws_ivs",
+                              "mux"
                             ],
                             "value": "generic"
                           },
@@ -2845,20 +2969,27 @@
                         },
                         "srt": {
                           "bw_overhead": 25,
-                          "dest_ip": "srt://1.2.3.4 || srt://stream.url",
+                          "call_mode": {
+                            "possible_values": [
+                              "CALLER",
+                              "LISTENER"
+                            ],
+                            "value": "CALLER"
+                          },
+                          "dest_ip": "1.2.3.4 || stream.url",
                           "dest_port": 5555,
                           "key_size": {
                             "possible_values": [
-                              "NONE",
                               "AES128",
                               "AES192",
                               "AES256"
                             ],
-                            "value": "NONE"
+                            "value": "AES128"
                           },
                           "latency": 120,
                           "passphrase": "abc123",
-                          "status": "STREAM_OFF"
+                          "status": "STREAM_OFF",
+                          "stream_id": "stream1"
                         },
                         "thumbnail": {
                           "interval": {
@@ -2996,6 +3127,31 @@
                             "filename_base": {
                               "type": "string"
                             },
+                            "filename_timezone": {
+                              "properties": {
+                                "possible_values": {
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "string"
+                                      }
+                                    ]
+                                  },
+                                  "type": "array"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "possible_values"
+                              ],
+                              "type": "object"
+                            },
                             "ftp_upload": {
                               "properties": {
                                 "bytes_uploaded": {
@@ -3104,6 +3260,7 @@
                           },
                           "required": [
                             "filename_base",
+                            "filename_timezone",
                             "selected_device_name",
                             "available_drives",
                             "status",
@@ -3408,6 +3565,9 @@
                                       },
                                       {
                                         "type": "string"
+                                      },
+                                      {
+                                        "type": "string"
                                       }
                                     ]
                                   },
@@ -3450,6 +3610,31 @@
                             "bw_overhead": {
                               "type": "number"
                             },
+                            "call_mode": {
+                              "properties": {
+                                "possible_values": {
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "string"
+                                      }
+                                    ]
+                                  },
+                                  "type": "array"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "possible_values"
+                              ],
+                              "type": "object"
+                            },
                             "dest_ip": {
                               "type": "string"
                             },
@@ -3461,9 +3646,6 @@
                                 "possible_values": {
                                   "items": {
                                     "anyOf": [
-                                      {
-                                        "type": "string"
-                                      },
                                       {
                                         "type": "string"
                                       },
@@ -3494,6 +3676,9 @@
                               "type": "string"
                             },
                             "status": {
+                              "type": "string"
+                            },
+                            "stream_id": {
                               "type": "string"
                             }
                           },
@@ -3686,6 +3871,9 @@
                         "value": "TS"
                       },
                       "filename_base": "VID",
+                      "filename_timezone": {
+                        "value": "UTC"
+                      },
                       "ftp_upload": {
                         "delete_file_after_upload": false,
                         "enable": false,
@@ -3765,13 +3953,17 @@
                     },
                     "srt": {
                       "bw_overhead": 25,
-                      "dest_ip": "srt://1.2.3.4 || srt://stream.url",
+                      "call_mode": {
+                        "value": "CALLER"
+                      },
+                      "dest_ip": "1.2.3.4 || stream.url",
                       "dest_port": 5555,
                       "key_size": {
-                        "value": "NONE"
+                        "value": "AES128"
                       },
                       "latency": 120,
-                      "passphrase": "abc123"
+                      "passphrase": "abc123",
+                      "stream_id": "stream1"
                     },
                     "thumbnail": {
                       "interval": {
@@ -3846,6 +4038,17 @@
                           "filename_base": {
                             "type": "string"
                           },
+                          "filename_timezone": {
+                            "properties": {
+                              "value": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "value"
+                            ],
+                            "type": "object"
+                          },
                           "ftp_upload": {
                             "properties": {
                               "delete_file_after_upload": {
@@ -3917,6 +4120,7 @@
                         },
                         "required": [
                           "filename_base",
+                          "filename_timezone",
                           "file_format",
                           "device_selection_policy"
                         ],
@@ -4127,6 +4331,17 @@
                           "bw_overhead": {
                             "type": "number"
                           },
+                          "call_mode": {
+                            "properties": {
+                              "value": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "value"
+                            ],
+                            "type": "object"
+                          },
                           "dest_ip": {
                             "type": "string"
                           },
@@ -4148,6 +4363,9 @@
                             "type": "number"
                           },
                           "passphrase": {
+                            "type": "string"
+                          },
+                          "stream_id": {
                             "type": "string"
                           }
                         },
@@ -4249,6 +4467,91 @@
         "summary": "Update Encoder Streaming Output"
       }
     },
+    "/v2/out_streams/{id}/action/authenticate_ftp": {
+      "post": {
+        "parameters": [
+          {
+            "description": "",
+            "example": "0",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "response": {
+                    "value": {
+                      "result": "SUCCESS"
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "enum": [
+                        "SUCCESS",
+                        "FAILURE_SERVER_UNREACHABLE",
+                        "FAILURE_AUTHENTICATION",
+                        "FAILURE_PERMISSIONS"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "result"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {}
+          }
+        },
+        "tags": [
+          "Output Streams"
+        ],
+        "description": "Validate the FTP server configuration provided in the request. If 'password' is not provided, then the currently saved one will be used.",
+        "operationId": "File Record - Validate FTP",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "example": {
+                  "file_path": "recordings",
+                  "password": "password",
+                  "server": "my.ftp.com",
+                  "username": "admin"
+                },
+                "properties": {
+                  "file_path": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "server": {
+                    "type": "string"
+                  },
+                  "username": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "summary": "File Record - Validate FTP"
+      }
+    },
     "/v2/out_streams/{id}/action/{action_name}": {
       "post": {
         "parameters": [
@@ -4282,97 +4585,9 @@
         "tags": [
           "Output Streams"
         ],
-        "description": "Run action for output, often supported by RTMP outputs, to support third-party API calls. This does not return anything directly but will cause status to change or service-specific data to populate.",
-        "operationId": "Run output action",
-        "summary": "Run output action"
-      }
-    },
-    "/v2/scte35": {
-      "get": {
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "examples": {
-                  "response": {
-                    "value": {
-                      "duration": 30
-                    }
-                  }
-                },
-                "schema": {
-                  "properties": {
-                    "duration": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "duration"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "OK",
-            "headers": {}
-          }
-        },
-        "tags": [
-          "SCTE-35"
-        ],
-        "description": "Get the SCTE-35 settings for the device.\n\nThese settings include ad duration.",
-        "operationId": "Get SCTE-35 Settings",
-        "summary": "Get SCTE-35 Settings"
-      },
-      "put": {
-        "responses": {
-          "204": {
-            "description": "No Content",
-            "headers": {}
-          }
-        },
-        "tags": [
-          "SCTE-35"
-        ],
-        "description": "Update the SCTE-35 settings for the device.\n\nThese settings include ad duration.",
-        "operationId": "Update SCTE-35 Settings",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "example": {
-                  "duration": 30
-                },
-                "properties": {
-                  "duration": {
-                    "type": "number"
-                  }
-                },
-                "required": [
-                  "duration"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "summary": "Update SCTE-35 Settings"
-      }
-    },
-    "/v2/scte35/insert_splice": {
-      "post": {
-        "responses": {
-          "200": {
-            "description": "OK",
-            "headers": {}
-          }
-        },
-        "tags": [
-          "SCTE-35"
-        ],
-        "description": "Insert splice markers to transport stream outputs starting now. The duration of the splice will be what is configured in\nthe scte35 endpoint. There will be at least a 4 second delay in splice start.",
-        "operationId": "Unmount Storage Device",
-        "summary": "Unmount Storage Device"
+        "description": "Run action for output, often supported by RTMP outputs, to support third-party API calls.",
+        "operationId": "General Output Actions",
+        "summary": "General Output Actions"
       }
     },
     "/v2/storage": {
@@ -5475,6 +5690,12 @@
           "active": {
             "type": "boolean"
           },
+          "codec": {
+            "enum": [
+              "klv_sync"
+            ],
+            "type": "string"
+          },
           "data_encoder_id": {
             "type": "number"
           },
@@ -5487,10 +5708,12 @@
         },
         "required": [
           "data_encoder_id",
+          "codec",
           "active"
         ],
         "type": "object"
       },
+      "Data_Encoder_Actions": {},
       "Data_Encoder_Configuration": {},
       "Data_Encoders": {},
       "DriveInfo": {
@@ -5596,6 +5819,31 @@
           },
           "filename_base": {
             "type": "string"
+          },
+          "filename_timezone": {
+            "properties": {
+              "possible_values": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "value",
+              "possible_values"
+            ],
+            "type": "object"
           },
           "ftp_upload": {
             "properties": {
@@ -5705,6 +5953,7 @@
         },
         "required": [
           "filename_base",
+          "filename_timezone",
           "selected_device_name",
           "available_drives",
           "status",
@@ -5746,6 +5995,17 @@
           },
           "filename_base": {
             "type": "string"
+          },
+          "filename_timezone": {
+            "properties": {
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "value"
+            ],
+            "type": "object"
           },
           "ftp_upload": {
             "properties": {
@@ -5818,6 +6078,7 @@
         },
         "required": [
           "filename_base",
+          "filename_timezone",
           "file_format",
           "device_selection_policy"
         ],
@@ -6281,6 +6542,7 @@
         ],
         "type": "object"
       },
+      "Output_Actions": {},
       "Range": {
         "properties": {
           "max": {
@@ -6306,6 +6568,9 @@
               "possible_values": {
                 "items": {
                   "anyOf": [
+                    {
+                      "type": "string"
+                    },
                     {
                       "type": "string"
                     },
@@ -6386,11 +6651,46 @@
         },
         "type": "object"
       },
-      "SCTE-35": {},
+      "SCTE35": {
+        "properties": {
+          "splice_duration": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "splice_duration"
+        ],
+        "type": "object"
+      },
       "SRTRead": {
         "properties": {
           "bw_overhead": {
             "type": "number"
+          },
+          "call_mode": {
+            "properties": {
+              "possible_values": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "value",
+              "possible_values"
+            ],
+            "type": "object"
           },
           "dest_ip": {
             "type": "string"
@@ -6403,9 +6703,6 @@
               "possible_values": {
                 "items": {
                   "anyOf": [
-                    {
-                      "type": "string"
-                    },
                     {
                       "type": "string"
                     },
@@ -6437,6 +6734,9 @@
           },
           "status": {
             "type": "string"
+          },
+          "stream_id": {
+            "type": "string"
           }
         },
         "required": [
@@ -6452,6 +6752,17 @@
         "properties": {
           "bw_overhead": {
             "type": "number"
+          },
+          "call_mode": {
+            "properties": {
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "value"
+            ],
+            "type": "object"
           },
           "dest_ip": {
             "type": "string"
@@ -6474,6 +6785,9 @@
             "type": "number"
           },
           "passphrase": {
+            "type": "string"
+          },
+          "stream_id": {
             "type": "string"
           }
         },
@@ -7002,6 +7316,9 @@
       "name": "Video Encoders"
     },
     {
+      "name": "Sync Groups"
+    },
+    {
       "name": "Audio Encoders"
     },
     {
@@ -7012,9 +7329,6 @@
     },
     {
       "name": "Storage"
-    },
-    {
-      "name": "SCTE-35"
     },
     {
       "name": "XML"
