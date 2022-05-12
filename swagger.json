@@ -84,7 +84,8 @@
                           },
                           "codec": {
                             "enum": [
-                              "klv_sync"
+                              "klv_sync",
+                              "scte35"
                             ],
                             "type": "string"
                           },
@@ -328,7 +329,7 @@
                       "active": false,
                       "aud_encoder_id": 0,
                       "bitrate": {
-                        "value": "64",
+                        "value": 64,
                         "value_range": {
                           "max": 512,
                           "min": 32
@@ -400,7 +401,7 @@
                     "bitrate": {
                       "properties": {
                         "value": {
-                          "type": "string"
+                          "type": "number"
                         },
                         "value_range": {
                           "properties": {
@@ -661,7 +662,7 @@
               "schema": {
                 "example": {
                   "bitrate": {
-                    "value": "64"
+                    "value": 64
                   },
                   "bitrate_mode": {
                     "value": "variable"
@@ -685,7 +686,7 @@
                   "bitrate": {
                     "properties": {
                       "value": {
-                        "type": "string"
+                        "type": "number"
                       }
                     },
                     "required": [
@@ -819,7 +820,8 @@
                           },
                           "codec": {
                             "enum": [
-                              "klv_sync"
+                              "klv_sync",
+                              "scte35"
                             ],
                             "type": "string"
                           },
@@ -2522,6 +2524,39 @@
                         ],
                         "value": "input_embedded"
                       },
+                      "graphic_overlay": {
+                        "enable": false,
+                        "image_status": "NO_IMAGE",
+                        "position": {
+                          "height": 100,
+                          "lock_resolution_ratio": {
+                            "possible_values": [
+                              "NO_LOCK",
+                              "LOCK_TO_WIDTH",
+                              "LOCK_TO_HEIGHT"
+                            ],
+                            "value": "NO_LOCK"
+                          },
+                          "preset": {
+                            "possible_values": [
+                              "MANUAL",
+                              "FULLSCREEN",
+                              "LOWER_THIRD",
+                              "TOP_LEFT",
+                              "BOTTOM_LEFT",
+                              "TOP_CENTER",
+                              "CENTER",
+                              "BOTTOM_CENTER",
+                              "TOP_RIGHT",
+                              "BOTTOM_RIGHT"
+                            ],
+                            "value": "MANUAL"
+                          },
+                          "width": 100,
+                          "x": 0,
+                          "y": 0
+                        }
+                      },
                       "in_channel_id": 0,
                       "video_input": {
                         "detected_format": {
@@ -2568,6 +2603,124 @@
                         "value",
                         "possible_values",
                         "detected"
+                      ],
+                      "type": "object"
+                    },
+                    "graphic_overlay": {
+                      "properties": {
+                        "enable": {
+                          "type": "boolean"
+                        },
+                        "image_status": {
+                          "type": "string"
+                        },
+                        "position": {
+                          "properties": {
+                            "height": {
+                              "type": "number"
+                            },
+                            "lock_resolution_ratio": {
+                              "properties": {
+                                "possible_values": {
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "string"
+                                      }
+                                    ]
+                                  },
+                                  "type": "array"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "possible_values"
+                              ],
+                              "type": "object"
+                            },
+                            "preset": {
+                              "properties": {
+                                "possible_values": {
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "string"
+                                      }
+                                    ]
+                                  },
+                                  "type": "array"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "possible_values"
+                              ],
+                              "type": "object"
+                            },
+                            "width": {
+                              "type": "number"
+                            },
+                            "x": {
+                              "type": "number"
+                            },
+                            "y": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "preset",
+                            "x",
+                            "y",
+                            "width",
+                            "height",
+                            "lock_resolution_ratio"
+                          ],
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "enable",
+                        "position",
+                        "image_status"
                       ],
                       "type": "object"
                     },
@@ -2618,7 +2771,8 @@
                   "required": [
                     "in_channel_id",
                     "audio_input",
-                    "video_input"
+                    "video_input",
+                    "graphic_overlay"
                   ],
                   "type": "object"
                 }
@@ -2667,6 +2821,21 @@
                   "audio_input": {
                     "value": "input_embedded"
                   },
+                  "graphic_overlay": {
+                    "enable": false,
+                    "position": {
+                      "height": 100,
+                      "lock_resolution_ratio": {
+                        "value": "NO_LOCK"
+                      },
+                      "preset": {
+                        "value": "MANUAL"
+                      },
+                      "width": 100,
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
                   "video_input": {
                     "value": "input_hdmi"
                   }
@@ -2680,6 +2849,65 @@
                     },
                     "required": [
                       "value"
+                    ],
+                    "type": "object"
+                  },
+                  "graphic_overlay": {
+                    "properties": {
+                      "enable": {
+                        "type": "boolean"
+                      },
+                      "position": {
+                        "properties": {
+                          "height": {
+                            "type": "number"
+                          },
+                          "lock_resolution_ratio": {
+                            "properties": {
+                              "value": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "value"
+                            ],
+                            "type": "object"
+                          },
+                          "preset": {
+                            "properties": {
+                              "value": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "value"
+                            ],
+                            "type": "object"
+                          },
+                          "width": {
+                            "type": "number"
+                          },
+                          "x": {
+                            "type": "number"
+                          },
+                          "y": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "preset",
+                          "x",
+                          "y",
+                          "width",
+                          "height",
+                          "lock_resolution_ratio"
+                        ],
+                        "type": "object"
+                      }
+                    },
+                    "required": [
+                      "enable",
+                      "position"
                     ],
                     "type": "object"
                   },
@@ -2697,7 +2925,8 @@
                 },
                 "required": [
                   "audio_input",
-                  "video_input"
+                  "video_input",
+                  "graphic_overlay"
                 ],
                 "type": "object"
               }
@@ -2705,6 +2934,95 @@
           }
         },
         "summary": "Update Input Channel Configuration"
+      }
+    },
+    "/v2/in_channels/{id}/overlay_graphic": {
+      "delete": {
+        "parameters": [
+          {
+            "description": "",
+            "example": "0",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {}
+          }
+        },
+        "tags": [
+          "Input Channels"
+        ],
+        "description": "Delete the stored overlay graphic.",
+        "operationId": "Delete overlay graphic",
+        "summary": "Delete overlay graphic"
+      },
+      "get": {
+        "parameters": [
+          {
+            "description": "",
+            "example": "0",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/png; Content-Transfer-Encoding: base64": {
+                "examples": {
+                  "response": {
+                    "value": "<base64 png>\n"
+                  }
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {}
+          }
+        },
+        "tags": [
+          "Input Channels"
+        ],
+        "description": "",
+        "operationId": "Retrieve Overlay Graphic",
+        "summary": "Retrieve Overlay Graphic"
+      },
+      "post": {
+        "parameters": [
+          {
+            "description": "",
+            "example": "0",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {}
+          }
+        },
+        "tags": [
+          "Input Channels"
+        ],
+        "description": "Upload overlay graphic.",
+        "operationId": "Upload Overlay Graphic",
+        "summary": "Upload Overlay Graphic"
       }
     },
     "/v2/out_streams": {
@@ -2742,7 +3060,7 @@
                               "http_pull",
                               "http_push",
                               "srt",
-                              "file_record",
+                              "file",
                               "thumbnail"
                             ],
                             "type": "string"
@@ -3777,7 +4095,7 @@
                             "http_pull",
                             "http_push",
                             "srt",
-                            "file_record",
+                            "file",
                             "thumbnail"
                           ],
                           "type": "string"
@@ -4428,7 +4746,7 @@
                           "rtmp",
                           "http_pull",
                           "http_push",
-                          "file_record",
+                          "file",
                           "srt",
                           "thumbnail"
                         ],
@@ -5194,7 +5512,6 @@
                     "static_network",
                     "version",
                     "device_id",
-                    "xml",
                     "clock"
                   ],
                   "type": "object"
@@ -5483,7 +5800,7 @@
           "bitrate": {
             "properties": {
               "value": {
-                "type": "string"
+                "type": "number"
               }
             },
             "required": [
@@ -5692,7 +6009,8 @@
           },
           "codec": {
             "enum": [
-              "klv_sync"
+              "klv_sync",
+              "scte35"
             ],
             "type": "string"
           },
@@ -6530,7 +6848,7 @@
               "http_pull",
               "http_push",
               "srt",
-              "file_record",
+              "file",
               "thumbnail"
             ],
             "type": "string"
@@ -6543,6 +6861,7 @@
         "type": "object"
       },
       "Output_Actions": {},
+      "Overlay_Graphic": {},
       "Range": {
         "properties": {
           "max": {
