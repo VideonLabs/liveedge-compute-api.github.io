@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "description": "This document presents the REST API for Videon streaming devices. Multimedia encoder settings and media destinations(outputs) can be configured through the REST API.\n\nFor specific possible values, please refer to the particular streaming device you are using. All Videon streaming devices share a common REST API, but the specific features supported will vary for each device model.\n\nBefore starting, check out our REST API Quickstart Guide.  It makes getting started easy!",
+    "description": "This document presents the REST API for Videon streaming devices. Multimedia encoder settings and media destinations(outputs) can be configured through the REST API.\n\nFor specific possible values, please refer to the particular streaming device you are using. All Videon streaming devices share a common REST API, but the specific features supported will vary for each device model.",
     "title": "Videon Streaming REST API",
     "version": ""
   },
@@ -1164,9 +1164,892 @@
         "tags": [
           "Data Encoders"
         ],
-        "description": "Insert splice markers to transport stream outputs starting now. The duration of the splice will be what is configured in\nthe SCTE-35 encoder. There will be at least a 4 second delay in splice start.",
+        "description": "Legacy endpoint. Insert splice markers to transport stream outputs starting now. The duration of the splice will be what\nis configured in the SCTE-35 encoder. There will be at least a 4 second delay in splice start.",
         "operationId": "SCTE-35 - Insert Splice",
         "summary": "SCTE-35 - Insert Splice"
+      }
+    },
+    "/v2/encoders/data_encoders/{id}/klv": {
+      "get": {
+        "parameters": [
+          {
+            "description": "",
+            "example": "0",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "response": {
+                    "value": {
+                      "klv": [
+                        {
+                          "id": 0,
+                          "klv": [
+                            {
+                              "blob": "060E2B34010101010105020000000000105965737465726461797320576F726C64",
+                              "enumerated": {
+                                "key": "060E2B34010101010105020000000000",
+                                "length": 16,
+                                "value": "5965737465726461797320576F726C64"
+                              },
+                              "value": "blob"
+                            }
+                          ],
+                          "precision_datetime_utc": "1980-01-04T04:20:30.789Z"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "klv": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "klv": {
+                            "items": {
+                              "properties": {
+                                "blob": {
+                                  "type": "string"
+                                },
+                                "enumerated": {
+                                  "properties": {
+                                    "key": {
+                                      "type": "string"
+                                    },
+                                    "length": {
+                                      "type": "number"
+                                    },
+                                    "value": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "type": "object"
+                                },
+                                "value": {
+                                  "enum": [
+                                    "blob",
+                                    "enumerated"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "type": "object"
+                            },
+                            "type": "array"
+                          },
+                          "precision_datetime_utc": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {}
+          }
+        },
+        "tags": [
+          "Data Encoders"
+        ],
+        "description": "Get the list of KLV requests.",
+        "operationId": "Get KLV Requests",
+        "summary": "Get KLV Requests"
+      },
+      "post": {
+        "parameters": [
+          {
+            "description": "",
+            "example": "0",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "response": {
+                    "value": {
+                      "id": 0
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {}
+          }
+        },
+        "tags": [
+          "Data Encoders"
+        ],
+        "description": "Create a request to inject KLV into the stream. The KLV will be associated with the video frame that has an MISB 604\nPrecision Time Stamp matching closest to the the given UTC time.\n\nThe format of the KLV in transport streams will follow ISO/IEC 13818-1 Metadata AU Wrapper. The first Metadata AU Cell\nwill be the MISB 0601 KLV containing the Precision Time Stamp, which will be followed by subsequent Metadata AU Cells\nfor each KLV listed in the request.\n\n* **precision_datetime_utc** - The UTC time to associate the KLV with. It will be paired with the video frame with\nclosest matching time.\n  * Time should be specified as ISO 8601 in UTC (i.e. “yyyy-mm-ddTHH:MM:SS.mmmZ”).\n  * This field is optional and if not specified, the command will be inserted immediately.\n  * If the time given is up to 1 minute in the past, then the command will be inserted immediately. Otherwise, it will be\nrejected and an error returned.\n  * If two separate requests have a precision time matching to the same video frame, they will still be tracked\nseparately, but both will be included in the same KLV frame.\n\n* **klv** - An array of KLV to insert into the stream. They are all inserted into the stream at the same time and\nassociated to the same video frame using **precision_datetime_utc**. Each KLV object can be specified using multiple\nformats. **value** is the distinguishing field for format and indicates what corresponding object is being used (e.g. **blob**).\n\n* **blob** - A hexadecimal string containing the full KLV data in the form of a binary blob. KLV data must conform to SMPTE-336.\n\n* **enumerated**\n  * **key** - A hexadecimal string containing the 16 byte KLV key in the form of a binary blob. Key must conform to SMPTE-336.\n  * **value** - A hexadecimal string containing the KLV value in the form of a binary blob. Value must conform to SMPTE-336.",
+        "operationId": "Create KLV Request",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "example": {
+                  "klv": [
+                    {
+                      "blob": "060E2B34010101010105020000000000105965737465726461797320576F726C64",
+                      "enumerated": {
+                        "key": "060E2B34010101010105020000000000",
+                        "value": "5965737465726461797320576F726C64"
+                      },
+                      "value": "blob"
+                    }
+                  ],
+                  "precision_datetime_utc": "1980-01-04T04:20:30.789Z"
+                },
+                "properties": {
+                  "klv": {
+                    "items": {
+                      "properties": {
+                        "blob": {
+                          "type": "string"
+                        },
+                        "enumerated": {
+                          "properties": {
+                            "key": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "key",
+                            "value"
+                          ],
+                          "type": "object"
+                        },
+                        "value": {
+                          "enum": [
+                            "blob",
+                            "enumerated"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "precision_datetime_utc": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "klv"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "summary": "Create KLV Request"
+      }
+    },
+    "/v2/encoders/data_encoders/{id}/klv/{klv_id}": {
+      "delete": {
+        "parameters": [
+          {
+            "description": "",
+            "example": "0",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "",
+            "example": "1",
+            "in": "path",
+            "name": "klv_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {}
+          }
+        },
+        "tags": [
+          "Data Encoders"
+        ],
+        "description": "Delete a KLV request.",
+        "operationId": "Delete KLV Request",
+        "summary": "Delete KLV Request"
+      },
+      "get": {
+        "parameters": [
+          {
+            "description": "",
+            "example": "0",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "",
+            "example": "1",
+            "in": "path",
+            "name": "klv_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "response": {
+                    "value": {
+                      "id": 0,
+                      "klv": [
+                        {
+                          "blob": "060E2B34010101010105020000000000105965737465726461797320576F726C64",
+                          "enumerated": {
+                            "key": "060E2B34010101010105020000000000",
+                            "length": 16,
+                            "value": "5965737465726461797320576F726C64"
+                          },
+                          "value": "blob"
+                        }
+                      ],
+                      "precision_datetime_utc": "1980-01-04T04:20:30.789Z"
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "klv": {
+                      "items": {
+                        "properties": {
+                          "blob": {
+                            "type": "string"
+                          },
+                          "enumerated": {
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "length": {
+                                "type": "number"
+                              },
+                              "value": {
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "value": {
+                            "enum": [
+                              "blob",
+                              "enumerated"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "precision_datetime_utc": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {}
+          }
+        },
+        "tags": [
+          "Data Encoders"
+        ],
+        "description": "Get the details of a KLV request.",
+        "operationId": "Get KLV Request",
+        "summary": "Get KLV Request"
+      },
+      "put": {
+        "parameters": [
+          {
+            "description": "",
+            "example": "0",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "",
+            "example": "1",
+            "in": "path",
+            "name": "klv_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {}
+          }
+        },
+        "tags": [
+          "Data Encoders"
+        ],
+        "description": "Update the details of a KLV request. Individual KLV within the original request is not added or removed. The KLV data is\nreplaced wholesale.",
+        "operationId": "Update KLV Request",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "example": {
+                  "klv": [
+                    {
+                      "blob": "060E2B34010101010105020000000000105965737465726461797320576F726C64",
+                      "enumerated": {
+                        "key": "060E2B34010101010105020000000000",
+                        "value": "5965737465726461797320576F726C64"
+                      },
+                      "value": "blob"
+                    }
+                  ],
+                  "precision_datetime_utc": "1980-01-04T04:20:30.789Z"
+                },
+                "properties": {
+                  "klv": {
+                    "items": {
+                      "properties": {
+                        "blob": {
+                          "type": "string"
+                        },
+                        "enumerated": {
+                          "properties": {
+                            "key": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "key",
+                            "value"
+                          ],
+                          "type": "object"
+                        },
+                        "value": {
+                          "enum": [
+                            "blob",
+                            "enumerated"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "precision_datetime_utc": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "klv"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "summary": "Update KLV Request"
+      }
+    },
+    "/v2/encoders/data_encoders/{id}/splice_commands": {
+      "delete": {
+        "parameters": [
+          {
+            "description": "",
+            "example": "0",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {}
+          }
+        },
+        "tags": [
+          "Data Encoders"
+        ],
+        "description": "Cancel all active splice commands. See description of DELETE for individual splice commands for more detail on how\ncancelling works.",
+        "operationId": "Delete Splice Commands",
+        "summary": "Delete Splice Commands"
+      },
+      "get": {
+        "parameters": [
+          {
+            "description": "",
+            "example": "0",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "response": {
+                    "value": {
+                      "splice_commands": [
+                        {
+                          "id": 0,
+                          "process_time_utc": "1980-01-04T04:20:30.789Z",
+                          "splice_command": {
+                            "splice_insert": {
+                              "duration_msec": 30000,
+                              "preroll_time_msec": 4000,
+                              "splice_event_id": 0
+                            },
+                            "time_signal": {
+                              "preroll_time_msec": 4000,
+                              "segment_num": 0,
+                              "segmentation_descriptor": "020F43554549000000017FBF0000300101",
+                              "segmentation_event_id": 0,
+                              "segmentation_type_id": 0
+                            },
+                            "value": "splice_insert"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "splice_commands": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "process_time_utc": {
+                            "type": "string"
+                          },
+                          "splice_command": {
+                            "properties": {
+                              "splice_insert": {
+                                "properties": {
+                                  "duration_msec": {
+                                    "type": "number"
+                                  },
+                                  "preroll_time_msec": {
+                                    "type": "number"
+                                  },
+                                  "splice_event_id": {
+                                    "type": "number"
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              "time_signal": {
+                                "properties": {
+                                  "preroll_time_msec": {
+                                    "type": "number"
+                                  },
+                                  "segment_num": {
+                                    "type": "number"
+                                  },
+                                  "segmentation_descriptor": {
+                                    "type": "string"
+                                  },
+                                  "segmentation_event_id": {
+                                    "type": "number"
+                                  },
+                                  "segmentation_type_id": {
+                                    "type": "number"
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              "value": {
+                                "enum": [
+                                  "splice_insert",
+                                  "time_signal"
+                                ],
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {}
+          }
+        },
+        "tags": [
+          "Data Encoders"
+        ],
+        "description": "Get the list of active splice commands.",
+        "operationId": "Get Splice Commands",
+        "summary": "Get Splice Commands"
+      },
+      "post": {
+        "parameters": [
+          {
+            "description": "",
+            "example": "0",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "response": {
+                    "value": {
+                      "id": 0
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {}
+          }
+        },
+        "tags": [
+          "Data Encoders"
+        ],
+        "description": "Create a splice command to insert into the stream. The command will be processed at the given UTC time or immediately if\nno time is specified.\n\n* **splice_insert** - Creates a splice_insert command with the given pre-roll and duration. If pre-roll is not specified, 4\nseconds is used. If the duration is not specified, the duration configured in the SCTE-35 encoder will be used. The\ncommand will be inserted into the stream at the process time and will be reinserted every 2 seconds of pre-roll for\nredundancy.\n\n* **time_signal** - Creates a time_signal command with the given pre-roll and with the given segmentation descriptor\nattached. If pre-roll is not specified, 4 seconds is used. The segmentation descriptor is the binary blob of the\ndescriptor data in the form of a hexidecimal string. The command will be inserted into the stream at the process\ntime and will be reinserted every 2 seconds of pre-roll for redundancy.",
+        "operationId": "Create Splice Command",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "example": {
+                  "process_time_utc": "1980-01-04T04:20:30.789Z",
+                  "splice_command": {
+                    "splice_insert": {
+                      "duration_msec": 30000,
+                      "preroll_time_msec": 4000
+                    },
+                    "time_signal": {
+                      "preroll_time_msec": 4000,
+                      "segmentation_descriptor": "020F43554549000000017FBF0000300101"
+                    },
+                    "value": "splice_insert"
+                  }
+                },
+                "properties": {
+                  "process_time_utc": {
+                    "type": "string"
+                  },
+                  "splice_command": {
+                    "properties": {
+                      "splice_insert": {
+                        "properties": {
+                          "duration_msec": {
+                            "type": "number"
+                          },
+                          "preroll_time_msec": {
+                            "type": "number"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "time_signal": {
+                        "properties": {
+                          "preroll_time_msec": {
+                            "type": "number"
+                          },
+                          "segmentation_descriptor": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "segmentation_descriptor"
+                        ],
+                        "type": "object"
+                      },
+                      "value": {
+                        "enum": [
+                          "splice_insert",
+                          "time_signal"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "value"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "splice_command"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "summary": "Create Splice Command"
+      }
+    },
+    "/v2/encoders/data_encoders/{id}/splice_commands/{cmd_id}": {
+      "delete": {
+        "parameters": [
+          {
+            "description": "",
+            "example": "0",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "",
+            "example": "1",
+            "in": "path",
+            "name": "cmd_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {}
+          }
+        },
+        "tags": [
+          "Data Encoders"
+        ],
+        "description": "Cancel an active splice command.\n\n* If no splice info sections for the event have been inserted into the stream yet, the active splice command is simply\ndeleted.\n\n* If splice info sections have been inserted but the event has not occured yet, a cancel splice info section is inserted\nimmediately.\n\n* (Splice Insert Only) If the splice event has occurred and the duration is under way, an immediate in to network\nsplice_insert is inserted.",
+        "operationId": "Delete Splice Command",
+        "summary": "Delete Splice Command"
+      },
+      "get": {
+        "parameters": [
+          {
+            "description": "",
+            "example": "0",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "",
+            "example": "1",
+            "in": "path",
+            "name": "cmd_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "response": {
+                    "value": {
+                      "id": 0,
+                      "process_time_utc": "1980-01-04T04:20:30.789Z",
+                      "splice_command": {
+                        "splice_insert": {
+                          "duration_msec": 30000,
+                          "preroll_time_msec": 4000,
+                          "splice_event_id": 0
+                        },
+                        "time_signal": {
+                          "preroll_time_msec": 4000,
+                          "segment_num": 0,
+                          "segmentation_descriptor": "020F43554549000000017FBF0000300101",
+                          "segmentation_event_id": 0,
+                          "segmentation_type_id": 0
+                        },
+                        "value": "splice_insert"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "process_time_utc": {
+                      "type": "string"
+                    },
+                    "splice_command": {
+                      "properties": {
+                        "splice_insert": {
+                          "properties": {
+                            "duration_msec": {
+                              "type": "number"
+                            },
+                            "preroll_time_msec": {
+                              "type": "number"
+                            },
+                            "splice_event_id": {
+                              "type": "number"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "time_signal": {
+                          "properties": {
+                            "preroll_time_msec": {
+                              "type": "number"
+                            },
+                            "segment_num": {
+                              "type": "number"
+                            },
+                            "segmentation_descriptor": {
+                              "type": "string"
+                            },
+                            "segmentation_event_id": {
+                              "type": "number"
+                            },
+                            "segmentation_type_id": {
+                              "type": "number"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "value": {
+                          "enum": [
+                            "splice_insert",
+                            "time_signal"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {}
+          }
+        },
+        "tags": [
+          "Data Encoders"
+        ],
+        "description": "Get the details of an active splice command.",
+        "operationId": "Get Splice Command",
+        "summary": "Get Splice Command"
       }
     },
     "/v2/encoders/vid_encoders": {
@@ -1831,6 +2714,7 @@
                         ],
                         "value": "H264"
                       },
+                      "current_bitrate": 0,
                       "in_channel_id": 0,
                       "keyframe_interval": {
                         "interval": 100,
@@ -1862,11 +2746,13 @@
                       "name": "VideoEncoder1",
                       "scaling_resolution": {
                         "possible_values": [
+                          "RES_PASSTHROUGH",
                           "RES_3840X2160",
                           "RES_1920X1080",
                           "RES_1280X720",
                           "RES_960X540",
                           "RES_720X576",
+                          "RES_854x480",
                           "RES_640X360",
                           "RES_480X270",
                           "RES_320X180"
@@ -2048,6 +2934,9 @@
                       ],
                       "type": "object"
                     },
+                    "current_bitrate": {
+                      "type": "number"
+                    },
                     "in_channel_id": {
                       "type": "number"
                     },
@@ -2155,6 +3044,12 @@
                         "possible_values": {
                           "items": {
                             "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "string"
+                              },
                               {
                                 "type": "string"
                               },
@@ -2529,7 +3424,7 @@
                         "image_status": "NO_IMAGE",
                         "position": {
                           "height": 100,
-                          "lock_resolution_ratio": {
+                          "lock_aspect_ratio": {
                             "possible_values": [
                               "NO_LOCK",
                               "LOCK_TO_WIDTH",
@@ -2568,6 +3463,15 @@
                           "input_sdi"
                         ],
                         "value": "input_hdmi"
+                      },
+                      "video_rotation": {
+                        "possible_values": [
+                          "ROTATE_0",
+                          "ROTATE_90",
+                          "ROTATE_180",
+                          "ROTATE_270"
+                        ],
+                        "value": "ROTATE_0"
                       }
                     }
                   }
@@ -2619,7 +3523,7 @@
                             "height": {
                               "type": "number"
                             },
-                            "lock_resolution_ratio": {
+                            "lock_aspect_ratio": {
                               "properties": {
                                 "possible_values": {
                                   "items": {
@@ -2712,7 +3616,7 @@
                             "y",
                             "width",
                             "height",
-                            "lock_resolution_ratio"
+                            "lock_aspect_ratio"
                           ],
                           "type": "object"
                         }
@@ -2766,12 +3670,44 @@
                         "detected_format"
                       ],
                       "type": "object"
+                    },
+                    "video_rotation": {
+                      "properties": {
+                        "possible_values": {
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "type": "array"
+                        },
+                        "value": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "possible_values"
+                      ],
+                      "type": "object"
                     }
                   },
                   "required": [
                     "in_channel_id",
                     "audio_input",
                     "video_input",
+                    "video_rotation",
                     "graphic_overlay"
                   ],
                   "type": "object"
@@ -2825,7 +3761,7 @@
                     "enable": false,
                     "position": {
                       "height": 100,
-                      "lock_resolution_ratio": {
+                      "lock_aspect_ratio": {
                         "value": "NO_LOCK"
                       },
                       "preset": {
@@ -2838,6 +3774,9 @@
                   },
                   "video_input": {
                     "value": "input_hdmi"
+                  },
+                  "video_rotation": {
+                    "value": "ROTATE_0"
                   }
                 },
                 "properties": {
@@ -2862,7 +3801,7 @@
                           "height": {
                             "type": "number"
                           },
-                          "lock_resolution_ratio": {
+                          "lock_aspect_ratio": {
                             "properties": {
                               "value": {
                                 "type": "string"
@@ -2900,7 +3839,7 @@
                           "y",
                           "width",
                           "height",
-                          "lock_resolution_ratio"
+                          "lock_aspect_ratio"
                         ],
                         "type": "object"
                       }
@@ -2912,6 +3851,17 @@
                     "type": "object"
                   },
                   "video_input": {
+                    "properties": {
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "video_rotation": {
                     "properties": {
                       "value": {
                         "type": "string"
@@ -3296,6 +4246,7 @@
                           },
                           "dest_ip": "1.2.3.4 || stream.url",
                           "dest_port": 5555,
+                          "encryption_enabled": true,
                           "key_size": {
                             "possible_values": [
                               "AES128",
@@ -3959,6 +4910,9 @@
                             "dest_port": {
                               "type": "number"
                             },
+                            "encryption_enabled": {
+                              "type": "boolean"
+                            },
                             "key_size": {
                               "properties": {
                                 "possible_values": {
@@ -4005,6 +4959,7 @@
                             "dest_ip",
                             "dest_port",
                             "latency",
+                            "encryption_enabled",
                             "bw_overhead"
                           ],
                           "type": "object"
@@ -4276,6 +5231,7 @@
                       },
                       "dest_ip": "1.2.3.4 || stream.url",
                       "dest_port": 5555,
+                      "encryption_enabled": true,
                       "key_size": {
                         "value": "AES128"
                       },
@@ -4666,6 +5622,9 @@
                           "dest_port": {
                             "type": "number"
                           },
+                          "encryption_enabled": {
+                            "type": "boolean"
+                          },
                           "key_size": {
                             "properties": {
                               "value": {
@@ -4689,7 +5648,8 @@
                         },
                         "required": [
                           "dest_ip",
-                          "dest_port"
+                          "dest_port",
+                          "encryption_enabled"
                         ],
                         "type": "object"
                       },
@@ -5407,18 +6367,25 @@
                       "ip_scheme": "dhcp",
                       "mac_address": "ab:cd:ef:12:34:56",
                       "net_connected": true,
-                      "static_network": {
-                        "dns_address": "5.6.7.8",
+                      "network": {
+                        "dns_addresses": [
+                          "1.1.1.1",
+                          "8.8.8.8"
+                        ],
                         "gateway": "1.2.3.1",
                         "ip_address": "1.2.3.4",
                         "netmask": "255.255.255.0"
                       },
-                      "version": "versionstring",
-                      "xml": {
-                        "enabled": false,
-                        "poll_interval": 10,
-                        "url": "http://get.your.xml.here/test.xml"
-                      }
+                      "static_network": {
+                        "dns_addresses": [
+                          "1.1.1.1",
+                          "8.8.8.8"
+                        ],
+                        "gateway": "1.2.3.1",
+                        "ip_address": "1.2.3.4",
+                        "netmask": "255.255.255.0"
+                      },
+                      "version": "versionstring"
                     }
                   }
                 },
@@ -5457,10 +6424,11 @@
                     "net_connected": {
                       "type": "boolean"
                     },
-                    "static_network": {
+                    "network": {
                       "properties": {
-                        "dns_address": {
-                          "type": "string"
+                        "dns_addresses": {
+                          "items": {},
+                          "type": "array"
                         },
                         "gateway": {
                           "type": "string"
@@ -5476,31 +6444,36 @@
                         "ip_address",
                         "netmask",
                         "gateway",
-                        "dns_address"
+                        "dns_addresses"
+                      ],
+                      "type": "object"
+                    },
+                    "static_network": {
+                      "properties": {
+                        "dns_addresses": {
+                          "items": {},
+                          "type": "array"
+                        },
+                        "gateway": {
+                          "type": "string"
+                        },
+                        "ip_address": {
+                          "type": "string"
+                        },
+                        "netmask": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "ip_address",
+                        "netmask",
+                        "gateway",
+                        "dns_addresses"
                       ],
                       "type": "object"
                     },
                     "version": {
                       "type": "string"
-                    },
-                    "xml": {
-                      "properties": {
-                        "enabled": {
-                          "type": "boolean"
-                        },
-                        "poll_interval": {
-                          "type": "number"
-                        },
-                        "url": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "enabled",
-                        "url",
-                        "poll_interval"
-                      ],
-                      "type": "object"
                     }
                   },
                   "required": [
@@ -5509,6 +6482,7 @@
                     "net_connected",
                     "mac_address",
                     "ip_address",
+                    "network",
                     "static_network",
                     "version",
                     "device_id",
@@ -5553,15 +6527,13 @@
                   "device_name": "StreamDevices1",
                   "ip_scheme": "static",
                   "static_network": {
-                    "dns_address": "5.6.7.8",
+                    "dns_addresses": [
+                      "1.1.1.1",
+                      "8.8.8.8"
+                    ],
                     "gateway": "1.2.3.1",
                     "ip_address": "1.2.3.4",
                     "netmask": "255.255.255.0"
-                  },
-                  "xml": {
-                    "enabled": false,
-                    "poll_interval": 10,
-                    "url": "http://get.your.xml.here/test.xml"
                   }
                 },
                 "properties": {
@@ -5588,8 +6560,8 @@
                   },
                   "static_network": {
                     "properties": {
-                      "dns_address": {
-                        "type": "string"
+                      "dns_addresses": {
+                        "type": "array"
                       },
                       "gateway": {
                         "type": "string"
@@ -5605,26 +6577,7 @@
                       "ip_address",
                       "netmask",
                       "gateway",
-                      "dns_address"
-                    ],
-                    "type": "object"
-                  },
-                  "xml": {
-                    "properties": {
-                      "enabled": {
-                        "type": "boolean"
-                      },
-                      "poll_interval": {
-                        "type": "number"
-                      },
-                      "url": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "enabled",
-                      "url",
-                      "poll_interval"
+                      "dns_addresses"
                     ],
                     "type": "object"
                   }
@@ -5773,6 +6726,74 @@
     }
   },
   "components": {
+    "requestBodies": {
+      "Create_KLV_RequestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "example": {
+                "klv": [
+                  {
+                    "blob": "060E2B34010101010105020000000000105965737465726461797320576F726C64",
+                    "enumerated": {
+                      "key": "060E2B34010101010105020000000000",
+                      "value": "5965737465726461797320576F726C64"
+                    },
+                    "value": "blob"
+                  }
+                ],
+                "precision_datetime_utc": "1980-01-04T04:20:30.789Z"
+              },
+              "properties": {
+                "klv": {
+                  "items": {
+                    "properties": {
+                      "blob": {
+                        "type": "string"
+                      },
+                      "enumerated": {
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "value"
+                        ],
+                        "type": "object"
+                      },
+                      "value": {
+                        "enum": [
+                          "blob",
+                          "enumerated"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "precision_datetime_utc": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "klv"
+              ],
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
     "schemas": {
       "AudEncoder": {
         "properties": {
@@ -6813,6 +7834,85 @@
       },
       "Input_Channel_Configuration": {},
       "Input_Channels": {},
+      "KlvObject": {
+        "properties": {
+          "blob": {
+            "type": "string"
+          },
+          "enumerated": {
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "length": {
+                "type": "number"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "value": {
+            "enum": [
+              "blob",
+              "enumerated"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "KlvObjectWrite": {
+        "properties": {
+          "blob": {
+            "type": "string"
+          },
+          "enumerated": {
+            "properties": {
+              "key": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key",
+              "value"
+            ],
+            "type": "object"
+          },
+          "value": {
+            "enum": [
+              "blob",
+              "enumerated"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "type": "object"
+      },
+      "KlvRequest": {
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "klv": {
+            "items": {
+              "$ref": "#/components/schemas/KlvObject"
+            },
+            "type": "array"
+          },
+          "precision_datetime_utc": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "KlvSync": {
         "properties": {},
         "type": "object"
@@ -6970,6 +8070,7 @@
         },
         "type": "object"
       },
+      "SCTE-35_Splice_Commands": {},
       "SCTE35": {
         "properties": {
           "splice_duration": {
@@ -7017,6 +8118,9 @@
           "dest_port": {
             "type": "number"
           },
+          "encryption_enabled": {
+            "type": "boolean"
+          },
           "key_size": {
             "properties": {
               "possible_values": {
@@ -7063,6 +8167,7 @@
           "dest_ip",
           "dest_port",
           "latency",
+          "encryption_enabled",
           "bw_overhead"
         ],
         "type": "object"
@@ -7089,6 +8194,9 @@
           "dest_port": {
             "type": "number"
           },
+          "encryption_enabled": {
+            "type": "boolean"
+          },
           "key_size": {
             "properties": {
               "value": {
@@ -7112,14 +8220,73 @@
         },
         "required": [
           "dest_ip",
-          "dest_port"
+          "dest_port",
+          "encryption_enabled"
         ],
+        "type": "object"
+      },
+      "SpliceCommand": {
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "process_time_utc": {
+            "type": "string"
+          },
+          "splice_command": {
+            "properties": {
+              "splice_insert": {
+                "properties": {
+                  "duration_msec": {
+                    "type": "number"
+                  },
+                  "preroll_time_msec": {
+                    "type": "number"
+                  },
+                  "splice_event_id": {
+                    "type": "number"
+                  }
+                },
+                "type": "object"
+              },
+              "time_signal": {
+                "properties": {
+                  "preroll_time_msec": {
+                    "type": "number"
+                  },
+                  "segment_num": {
+                    "type": "number"
+                  },
+                  "segmentation_descriptor": {
+                    "type": "string"
+                  },
+                  "segmentation_event_id": {
+                    "type": "number"
+                  },
+                  "segmentation_type_id": {
+                    "type": "number"
+                  }
+                },
+                "type": "object"
+              },
+              "value": {
+                "enum": [
+                  "splice_insert",
+                  "time_signal"
+                ],
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
         "type": "object"
       },
       "StaticNetworkSettings": {
         "properties": {
-          "dns_address": {
-            "type": "string"
+          "dns_addresses": {
+            "items": {},
+            "type": "array"
           },
           "gateway": {
             "type": "string"
@@ -7135,7 +8302,7 @@
           "ip_address",
           "netmask",
           "gateway",
-          "dns_address"
+          "dns_addresses"
         ],
         "type": "object"
       },
@@ -7347,26 +8514,8 @@
       },
       "Sync_Group_Configuration": {},
       "Sync_Groups": {},
+      "Synchronous_KLV_Injection": {},
       "System": {},
-      "SystemXmlSettings": {
-        "properties": {
-          "enabled": {
-            "type": "boolean"
-          },
-          "poll_interval": {
-            "type": "number"
-          },
-          "url": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "enabled",
-          "url",
-          "poll_interval"
-        ],
-        "type": "object"
-      },
       "ThumbnailRead": {
         "properties": {
           "interval": {
